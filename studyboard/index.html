@@ -36,7 +36,7 @@ body::before{content:'';position:fixed;inset:0;opacity:.025;background-image:url
 .blob3{width:300px;height:300px;top:40%;left:30%;background:rgba(255,101,132,.04)}
 
 /* SIDEBAR */
-.sidebar{width:220px;min-height:100vh;background:var(--s1);border-right:1px solid var(--b1);display:flex;flex-direction:column;flex-shrink:0;position:relative;z-index:10;overflow:hidden}
+.sidebar{width:220px;min-height:100vh;background:var(--s1);border-right:1px solid var(--b1);display:flex;flex-direction:column;flex-shrink:0;position:relative;z-index:10;overflow:hidden;transition:transform .3s ease;}
 .sidebar::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--acc),transparent)}
 .logo{padding:22px 18px 16px;border-bottom:1px solid var(--b1)}
 .logo-icon{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--acc),var(--acc2));display:flex;align-items:center;justify-content:center;margin-bottom:10px;font-size:18px;box-shadow:0 0 20px rgba(108,99,255,.4)}
@@ -58,7 +58,23 @@ body::before{content:'';position:fixed;inset:0;opacity:.025;background-image:url
 
 /* MAIN */
 .main{flex:1;overflow-y:auto;position:relative;z-index:1}
-.main::-webkit-scrollbar{width:4px}
+.main
+@media(max-width:768px){
+  #menu-btn{display:flex !important;}
+  
+  .sidebar{position:fixed;top:0;left:0;height:100vh;z-index:500;transform:translateX(-100%);}
+  .sidebar.open{transform:translateX(0);}
+  .main{width:100vw;padding-top:52px;}
+  .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:499;}
+  .overlay.show{display:block;}
+  #menu-btn{display:flex !important;}
+  .page{padding:20px 14px 40px;}
+  .g2{grid-template-columns:1fr;}
+  .g4{grid-template-columns:1fr 1fr;}
+  .pg-title{font-size:18px;}
+}
+
+::-webkit-scrollbar{width:4px}
 .main::-webkit-scrollbar-thumb{background:var(--b1);border-radius:99px}
 .page{display:none;padding:28px 28px 40px;min-height:100%}
 .page.active{display:block}
@@ -229,6 +245,22 @@ textarea{resize:vertical;min-height:70px;line-height:1.5}
 .toast-icon{font-size:16px}
 
 /* SCROLLBAR GLOBAL */
+
+@media(max-width:768px){
+  #menu-btn{display:flex !important;}
+  
+  .sidebar{position:fixed;top:0;left:0;height:100vh;z-index:500;transform:translateX(-100%);}
+  .sidebar.open{transform:translateX(0);}
+  .main{width:100vw;padding-top:52px;}
+  .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:499;}
+  .overlay.show{display:block;}
+  #menu-btn{display:flex !important;}
+  .page{padding:20px 14px 40px;}
+  .g2{grid-template-columns:1fr;}
+  .g4{grid-template-columns:1fr 1fr;}
+  .pg-title{font-size:18px;}
+}
+
 ::-webkit-scrollbar{width:4px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--b1);border-radius:99px}
@@ -251,6 +283,8 @@ textarea{resize:vertical;min-height:70px;line-height:1.5}
 <div class="blob blob3"></div>
 
 <!-- SIDEBAR -->
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+<button id="menu-btn" onclick="toggleSidebar()" style="position:fixed;top:12px;left:12px;z-index:600;background:var(--s1);border:1px solid var(--b1);color:var(--txt);width:38px;height:38px;border-radius:8px;font-size:18px;cursor:pointer;display:none;align-items:center;justify-content:center;">☰</button>
 <div class="sidebar">
   <div class="logo">
     <div class="logo-icon">📚</div>
@@ -472,3 +506,677 @@ textarea{resize:vertical;min-height:70px;line-height:1.5}
       <input type="text" id="err-tags" placeholder="e.g. calculus, integration, chain rule">
     </div>
     <button class="btn btn-acc btn-sm" onclick="addError(this)" style="margin-top:4px">+ Add Error</button>
+  </div>
+  <!-- ERROR LIST -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+    <div style="font-size:13px;font-weight:600;color:var(--txt2)" id="err-count-lbl">0 errors logged</div>
+    <div style="display:flex;gap:6px">
+      <select id="err-filter" onchange="renderErrors()" style="width:auto;padding:5px 10px;font-size:12px">
+        <option value="all">All subjects</option>
+        <option value="math">Math only</option>
+        <option value="eco">Eco only</option>
+        <option value="cs">CS only</option>
+      </select>
+      <button class="btn btn-danger btn-xs" onclick="clearErrors()">Clear all</button>
+    </div>
+  </div>
+  <div id="err-list"></div>
+</div>
+
+<!-- ═══ SESSION LOG ═══ -->
+<div class="page fade-in" id="page-log">
+  <div class="pg-head">
+    <div><div class="pg-title">Session Log 📋</div><div class="pg-sub">All study sessions</div></div>
+    <button class="btn btn-danger btn-sm" onclick="clearSessions()">Clear all</button>
+  </div>
+  <div class="card" id="full-log"><div style="color:var(--txt3);font-size:12px">No sessions yet</div></div>
+</div>
+
+</div><!-- /main -->
+
+<div class="toast" id="toast"><span class="toast-icon" id="t-icon">✓</span><span id="t-msg"></span></div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────
+const EXAMS = [
+  // MATH
+  {subj:'math',name:'Math — Pure Mathematics 1',code:'9709/12',date:'Wed 30 Sep 2026',session:'PM',dur:'1h 50m',ts:new Date('2026-09-30')},
+  {subj:'math',name:'Math — Pure Mathematics 2',code:'9709/22',date:'Tue 13 Oct 2026',session:'PM',dur:'1h 15m',ts:new Date('2026-10-13')},
+  {subj:'math',name:'Math — Pure Mathematics 3',code:'9709/32',date:'Thu 15 Oct 2026',session:'PM',dur:'1h 50m',ts:new Date('2026-10-15')},
+  {subj:'math',name:'Math — Mechanics (P4)',code:'9709/42',date:'Tue 13 Oct 2026',session:'PM',dur:'1h 15m',ts:new Date('2026-10-13')},
+  {subj:'math',name:'Math — Probability & Stats 1 (P5)',code:'9709/52',date:'Wed 7 Oct 2026',session:'PM',dur:'1h 15m',ts:new Date('2026-10-07')},
+  {subj:'math',name:'Math — Probability & Stats 2 (P6)',code:'9709/62',date:'Tue 13 Oct 2026',session:'PM',dur:'1h 15m',ts:new Date('2026-10-13')},
+  // ECO
+  {subj:'eco',name:'Economics — Multiple Choice (P1)',code:'9708/12',date:'Thu 5 Nov 2026',session:'AM',dur:'1h',ts:new Date('2026-11-05')},
+  {subj:'eco',name:'Economics — Data Response (P2)',code:'9708/22',date:'Tue 6 Oct 2026',session:'AM',dur:'2h',ts:new Date('2026-10-06')},
+  {subj:'eco',name:'Economics — Multiple Choice A2 (P3)',code:'9708/32',date:'Wed 11 Nov 2026',session:'AM',dur:'1h 15m',ts:new Date('2026-11-11')},
+  {subj:'eco',name:'Economics — Essay Paper (P4)',code:'9708/42',date:'Tue 13 Oct 2026',session:'AM',dur:'2h',ts:new Date('2026-10-13')},
+  // CS
+  {subj:'cs',name:'CS — Theory (P1)',code:'9618/12',date:'Fri 9 Oct 2026',session:'AM',dur:'1h 30m',ts:new Date('2026-10-09')},
+  {subj:'cs',name:'CS — Fundamental Concepts (P2)',code:'9618/22',date:'Wed 14 Oct 2026',session:'AM',dur:'2h',ts:new Date('2026-10-14')},
+  {subj:'cs',name:'CS — Advanced Theory (P3)',code:'9618/32',date:'Tue 20 Oct 2026',session:'AM',dur:'1h 30m',ts:new Date('2026-10-20')},
+  {subj:'cs',name:'CS — Practical (P4)',code:'9618/42',date:'29 Oct 2026',session:'AM',dur:'2h 30m',ts:new Date('2026-10-29')},
+];
+
+const SUBJECTS_DATA = {
+  math:{color:'var(--math)',cls:'math',name:'Mathematics',groups:[
+    {name:'AS Pure — Algebra & Functions',topics:['Quadratics & polynomials','Indices & surds','Coordinate geometry','Circular measure','Trigonometry (AS)','Binomial expansion','Series & sequences (AP/GP)']},
+    {name:'AS Pure — Calculus',topics:['Differentiation (AS)','Integration (AS)','Applications of differentiation','Applications of integration']},
+    {name:'A2 Pure 3 — Advanced',topics:['Algebra (partial fractions)','Further calculus (ln, e^x)','Differential equations','Implicit differentiation','Maclaurin series','Vectors (3D)','Complex numbers (intro)']},
+    {name:'Statistics 1 (P5)',topics:['Data representation & interpretation','Probability (basic)','Discrete random variables','Binomial distribution','Normal distribution','Sampling & estimation']},
+    {name:'Statistics 2 (P6)',topics:['Hypothesis testing (P6)','Poisson distribution','Type I & II errors','Chi-squared test','Linear combinations of variables','Confidence intervals']},
+    {name:'Mechanics (P4)',topics:['Kinematics (constant acceleration)','Kinematics (variable)','Forces & Newton\'s laws','Friction','Momentum & impulse','Work, energy & power','Circular motion']},
+  ]},
+  eco:{color:'var(--eco)',cls:'eco',name:'Economics',groups:[
+    {name:'AS Microeconomics',topics:['Supply & demand','Price elasticities (PED/PES/YED/XED)','Market structures (Perfect/Monopoly/Oligopoly)','Market failure & externalities','Government intervention (taxes, subsidies)','Price mechanism & resource allocation']},
+    {name:'AS Macroeconomics',topics:['National income & circular flow','AD/AS model','Economic growth & business cycle','Inflation (types & causes)','Unemployment (types & policies)','Balance of payments & current account','Exchange rates & policy']},
+    {name:'A2 Microeconomics',topics:['Theory of the firm (costs/revenue)','Price discrimination','Labour market theory','Monopsony','Market power & regulation','Welfare economics (consumer/producer surplus)']},
+    {name:'A2 Macroeconomics',topics:['Monetary policy (interest rates)','Fiscal policy & multiplier','Supply-side policies','Development economics & HDI','International trade & WTO','Terms of trade']},
+    {name:'Essay & Exam Technique',topics:['12-mark (analyse) structure','25-mark (evaluate) structure','Using diagrams in essays','Data response (Paper 2) skills','Mark scheme analysis (key phrases)','Timed writing practice']},
+  ]},
+  cs:{color:'var(--cs)',cls:'cs',name:'Computer Science',groups:[
+    {name:'Data Representation',topics:['Number systems (binary/hex/denary)','Integer representation (2\'s complement)','Floating point representation','Characters (ASCII/Unicode)','Images (bitmap/vector)','Sound sampling & MIDI','Compression (lossy/lossless)']},
+    {name:'Computer Architecture',topics:['Von Neumann model','CPU components (CU/ALU/registers)','Fetch-decode-execute cycle','Instruction sets & addressing modes','Memory hierarchy (cache/RAM/virtual)','I/O devices & buses','Processor performance']},
+    {name:'Networking & Internet',topics:['Network types (LAN/WAN/PAN)','Network hardware (switches/routers)','TCP/IP model & protocols','HTTP/FTP/DNS/SMTP','Network security & encryption','Wireless networking','The internet & cloud']},
+    {name:'Algorithms & Data Structures',topics:['Arrays, records, files','Linked lists','Stacks & queues','Binary trees & traversals','Hash tables','Bubble/insertion/merge sort','Binary & linear search','Recursion & Big-O notation']},
+    {name:'Programming & OOP',topics:['Pseudocode & flowchart standards','Structured programming','OOP: classes, objects, methods','Inheritance & polymorphism','File handling','Exception handling','Testing (black/white box)']},
+    {name:'Software & Security',topics:['Software development lifecycle','Programming paradigms','Boolean algebra & logic gates','Security threats & countermeasures','Databases & SQL basics']},
+  ]},
+  ger:{color:'var(--ger)',cls:'ger',name:'German B1',groups:[
+    {name:'Grammar — Foundation',topics:['Present tense (all strong/weak verbs)','Perfect tense (Perfekt)','Simple past (Imperfekt)','Future tense (werden + infinitive)','Nominative & accusative cases','Dative case','Genitive case']},
+    {name:'Grammar — Intermediate',topics:['Modal verbs (all 6)','Konjunktiv II (würden/könnte/wäre)','Passive voice','Relative clauses','Subordinate clauses (weil/dass/wenn)','Separable & inseparable verbs','Reflexive verbs','Two-way prepositions']},
+    {name:'Vocabulary',topics:['A2 core vocabulary (500 words)','B1 vocabulary (1000+ words)','Thematic: travel & transport','Thematic: work & career','Thematic: daily life & home','Thematic: health & body','Thematic: environment & current events','Numbers, dates, times']},
+    {name:'Skills — B1 Exam Prep',topics:['Reading comprehension (Lesen)','Listening practice — daily','Writing: formal letters (Schreiben)','Writing: short essays','Speaking: prepared topics (Sprechen)','Mock Goethe B1 practice test','Review exam format & timing']},
+  ]}
+};
+
+// PAST PAPERS DATA
+const PAST_PAPERS = {
+  math:[
+    {year:'2022',papers:['9709/12 — Pure 1','9709/22 — Pure 2','9709/32 — Pure 3','9709/42 — Mechanics','9709/52 — Statistics 1','9709/62 — Statistics 2']},
+    {year:'2023',papers:['9709/12 — Pure 1','9709/22 — Pure 2','9709/32 — Pure 3','9709/42 — Mechanics','9709/52 — Statistics 1','9709/62 — Statistics 2']},
+    {year:'2024',papers:['9709/12 — Pure 1','9709/22 — Pure 2','9709/32 — Pure 3','9709/42 — Mechanics','9709/52 — Statistics 1','9709/62 — Statistics 2']},
+    {year:'2025',papers:['9709/12 — Pure 1','9709/22 — Pure 2','9709/32 — Pure 3','9709/42 — Mechanics','9709/52 — Statistics 1','9709/62 — Statistics 2']},
+  ],
+  eco:[
+    {year:'2022',papers:['9708/12 — Multiple Choice','9708/22 — Data Response','9708/32 — MC A2','9708/42 — Essay']},
+    {year:'2023',papers:['9708/12 — Multiple Choice','9708/22 — Data Response','9708/32 — MC A2','9708/42 — Essay']},
+    {year:'2024',papers:['9708/12 — Multiple Choice','9708/22 — Data Response','9708/32 — MC A2','9708/42 — Essay']},
+    {year:'2025',papers:['9708/12 — Multiple Choice','9708/22 — Data Response','9708/32 — MC A2','9708/42 — Essay']},
+  ],
+  cs:[
+    {year:'2022',papers:['9618/12 — Theory 1','9618/22 — Theory 2','9618/32 — Advanced Theory','9618/42 — Practical']},
+    {year:'2023',papers:['9618/12 — Theory 1','9618/22 — Theory 2','9618/32 — Advanced Theory','9618/42 — Practical']},
+    {year:'2024',papers:['9618/12 — Theory 1','9618/22 — Theory 2','9618/32 — Advanced Theory','9618/42 — Practical']},
+    {year:'2025',papers:['9618/12 — Theory 1','9618/22 — Theory 2','9618/32 — Advanced Theory','9618/42 — Practical']},
+  ]
+};
+
+// ─── STORAGE ────────────────────────────────────────────────────────────
+function ld(k,d){try{return JSON.parse(localStorage.getItem(k))||d}catch{return d}}
+function sv(k,v){localStorage.setItem(k,JSON.stringify(v))}
+
+let checked = ld('sb_checked',{});
+let sessions = ld('sb_sessions',[]);
+let papersDone = ld('sb_papers',{});
+let errors = ld('sb_errors',[]);
+let pomos = ld('sb_pomos',{date:'',count:0});
+
+// ─── NAV ─────────────────────────────────────────────────────────────────
+function goTo(id,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const pg = document.getElementById('page-'+id);
+  pg.classList.add('active');
+  pg.classList.remove('fade-in');
+  void pg.offsetWidth;
+  pg.classList.add('fade-in');
+  if(el) el.classList.add('active');
+  if(id==='dash') refreshDash();
+  if(id==='log') renderFullLog();
+  if(id==='errors') renderErrors();
+  if(id==='exams') renderExams('all');
+  if(id==='papers') renderPapers('math');
+  refreshBadges();
+}
+
+// ─── RIPPLE ──────────────────────────────────────────────────────────────
+document.addEventListener('click',e=>{
+  const btn = e.target.closest('.btn');
+  if(!btn) return;
+  const r = document.createElement('div');
+  r.className='ripple-effect';
+  const rect = btn.getBoundingClientRect();
+  const s = Math.max(rect.width,rect.height);
+  r.style.cssText=`width:${s}px;height:${s}px;left:${e.clientX-rect.left-s/2}px;top:${e.clientY-rect.top-s/2}px`;
+  btn.appendChild(r);
+  setTimeout(()=>r.remove(),600);
+});
+
+// ─── SUBJECT RENDER ───────────────────────────────────────────────────────
+function renderSubject(subj){
+  const data = SUBJECTS_DATA[subj];
+  const container = document.getElementById(subj+'-topics');
+  container.innerHTML='';
+  data.groups.forEach(g=>{
+    const done = g.topics.filter(t=>checked[subj+'_'+t]).length;
+    const pct = g.topics.length?Math.round(done/g.topics.length*100):0;
+    const card = document.createElement('div');
+    card.className='card';
+    card.innerHTML=`
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;cursor:pointer" onclick="toggleGroup(this)">
+        <div style="font-size:13px;font-weight:600">${g.name}</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--txt3)">${done}/${g.topics.length}</div>
+          <span style="font-size:11px;color:var(--txt3)">▾</span>
+        </div>
+      </div>
+      <div class="prog-row"><div class="prog-track"><div class="prog-fill pf-${data.cls}" style="width:${pct}%"></div></div></div>
+      <div class="tg-body" style="margin-top:8px">
+        ${g.topics.map(t=>{
+          const key=subj+'_'+t;
+          const isDone=checked[key];
+          return `<div class="chk-wrap${isDone?' done':''}" onclick="toggleTopic('${key}','${subj}',this)">
+            <div class="chk-box${isDone?' ticked '+data.cls:''}">${isDone?'✓':''}</div>
+            <div class="chk-lbl">${t}</div>
+          </div>`;
+        }).join('')}
+      </div>`;
+    container.appendChild(card);
+  });
+  const p = getProgress(subj);
+  const badge = document.getElementById(subj+'-prog-badge');
+  if(badge) badge.textContent = p.pct+'%';
+}
+['math','eco','cs','ger'].forEach(renderSubject);
+
+function toggleGroup(el){
+  const body = el.parentElement.querySelector('.tg-body');
+  const arrow = el.querySelector('span');
+  if(body.style.display==='none'){body.style.display='';arrow.textContent='▾'}
+  else{body.style.display='none';arrow.textContent='▸'}
+}
+
+function toggleTopic(key,subj,wrap){
+  checked[key]=!checked[key];
+  sv('sb_checked',checked);
+  wrap.classList.toggle('done',checked[key]);
+  const box = wrap.querySelector('.chk-box');
+  box.className='chk-box'+(checked[key]?' ticked '+SUBJECTS_DATA[subj].cls:'');
+  box.textContent=checked[key]?'✓':'';
+  // update prog bar
+  const g = SUBJECTS_DATA[subj].groups.find(g=>g.topics.some(t=>subj+'_'+t===key));
+  if(g){
+    const done=g.topics.filter(t=>checked[subj+'_'+t]).length;
+    const pct=g.topics.length?Math.round(done/g.topics.length*100):0;
+    const card = wrap.closest('.card');
+    if(card){
+      const fill=card.querySelector('.prog-fill');
+      if(fill) fill.style.width=pct+'%';
+      const cnt=card.querySelector('[style*="JetBrains"]');
+      if(cnt) cnt.textContent=done+'/'+g.topics.length;
+    }
+  }
+  const p=getProgress(subj);
+  const badge=document.getElementById(subj+'-prog-badge');
+  if(badge) badge.textContent=p.pct+'%';
+  refreshBadges();
+  toast(checked[key]?'✓ Topic complete!':'Unmarked','✓');
+}
+
+// ─── PROGRESS ─────────────────────────────────────────────────────────────
+function getProgress(subj){
+  const data=SUBJECTS_DATA[subj];
+  let done=0,total=0;
+  data.groups.forEach(g=>g.topics.forEach(t=>{total++;if(checked[subj+'_'+t])done++}));
+  return{done,total,pct:total?Math.round(done/total*100):0};
+}
+
+function getPapersProgress(){
+  let done=0,total=0;
+  ['math','eco','cs'].forEach(s=>{
+    PAST_PAPERS[s].forEach(yr=>{
+      yr.papers.forEach(p=>{
+        total++;
+        if(papersDone[s+'_'+yr.year+'_'+p]) done++;
+      });
+    });
+  });
+  return{done,total,pct:total?Math.round(done/total*100):0};
+}
+
+// ─── DASHBOARD ────────────────────────────────────────────────────────────
+function refreshDash(){
+  const subjList=['math','eco','cs','ger'];
+  let td=0,ta=0;
+  subjList.forEach(s=>{
+    const p=getProgress(s);td+=p.done;ta+=p.total;
+    document.getElementById('dash-'+s+'-pct').textContent=p.pct+'%';
+    document.getElementById('dash-'+s+'-bar').style.width=p.pct+'%';
+    document.getElementById('sc-'+s+'-d').textContent=p.done;
+    document.getElementById('sc-'+s+'-r').textContent=(p.total-p.done)+' remaining';
+  });
+  const ov=ta?Math.round(td/ta*100):0;
+  document.getElementById('dash-overall').textContent=ov+'%';
+  document.getElementById('dash-overall-bar').style.width=ov+'%';
+
+  // Recent sessions
+  const rec=sessions.slice(-4).reverse();
+  const recEl=document.getElementById('recent-sess');
+  recEl.innerHTML=rec.length?rec.map(s=>sessHTML(s)).join(''):'<div style="color:var(--txt3);font-size:12px">No sessions yet</div>';
+
+  // Today schedule
+  const days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const sched={1:'Math (Pure) · Economics (Micro)',2:'CS (Theory) · Math (Review)',3:'Economics (Essays) · CS (Algorithms)',4:'Math (Past Papers) · Economics',5:'CS (Programming) · Math (Stats)',6:'Weak spots review — light day',0:'🌙 Rest day — fully off'};
+  const d=new Date().getDay();
+  document.getElementById('today-sched').innerHTML=`<div style="font-size:11px;color:var(--txt3);font-family:'JetBrains Mono',monospace;margin-bottom:6px">${days[d].toUpperCase()}</div><div style="font-size:14px;font-weight:600;line-height:1.6">${sched[d]}</div>`;
+
+  // Upcoming papers
+  const now=new Date();
+  const upcoming=EXAMS.filter(e=>e.ts>=now).sort((a,b)=>a.ts-b.ts).slice(0,4);
+  const upEl=document.getElementById('upcoming-papers');
+  upEl.innerHTML=upcoming.map(e=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--b1)">
+      <div style="width:7px;height:7px;border-radius:50%;background:var(--${e.subj});flex-shrink:0"></div>
+      <div style="flex:1">
+        <div style="font-size:12px;font-weight:600">${e.code}</div>
+        <div style="font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--txt3)">${e.date} · ${e.session}</div>
+      </div>
+      <div style="font-size:11px;color:var(--txt2)">${Math.ceil((e.ts-now)/864e5)}d</div>
+    </div>`).join('');
+
+  // Next exam banner
+  const next=EXAMS.filter(e=>e.ts>=now).sort((a,b)=>a.ts-b.ts)[0];
+  if(next){
+    const dLeft=Math.ceil((next.ts-now)/864e5);
+    document.getElementById('nextExamBanner').innerHTML=`
+      <div class="next-exam-banner" style="margin-bottom:14px">
+        <div class="neb-icon">⚡</div>
+        <div class="neb-info">
+          <div class="neb-title">Next: ${next.name}</div>
+          <div class="neb-sub">${next.date} · ${next.session} · ${next.dur} · ${next.code}</div>
+        </div>
+        <div class="neb-countdown">${dLeft}d</div>
+      </div>`;
+  }
+}
+
+function sessHTML(s){
+  const c={math:'var(--math)',eco:'var(--eco)',cs:'var(--cs)',ger:'var(--ger)'};
+  return`<div class="sess-row"><div class="sess-dot" style="background:${c[s.subject]}"></div><div class="sess-info"><div class="sess-name">${SUBJECTS_DATA[s.subject]?.name||s.subject}</div><div class="sess-sub">${s.topic||'General study'} · ${s.date}</div></div><div class="sess-dur">${s.duration}</div></div>`;
+}
+
+// ─── BADGES ───────────────────────────────────────────────────────────────
+function refreshBadges(){
+  ['math','eco','cs','ger'].forEach(s=>{
+    const p=getProgress(s);
+    document.getElementById('nb-'+s).textContent=p.pct+'%';
+  });
+  const pp=getPapersProgress();
+  document.getElementById('nb-papers').textContent=pp.pct+'%';
+  document.getElementById('nb-errors').textContent=errors.length;
+  // exam days remaining
+  const now=new Date();
+  const next=EXAMS.filter(e=>e.ts>=now).sort((a,b)=>a.ts-b.ts)[0];
+  if(next) document.getElementById('nb-exams').textContent=Math.ceil((next.ts-now)/864e5)+'d';
+}
+
+// ─── COUNTDOWN ────────────────────────────────────────────────────────────
+function updateCountdown(){
+  const target=new Date('2026-09-30T09:00:00');
+  const now=new Date();
+  const diff=target-now;
+  if(diff>0){
+    const el=document.getElementById('countdown');
+    if(el) el.innerHTML=`
+      <div class="cd-unit d"><div class="cd-num">${Math.floor(diff/864e5)}</div><div class="cd-lbl">days</div></div>
+      <div class="cd-unit h"><div class="cd-num">${Math.floor((diff%864e5)/36e5)}</div><div class="cd-lbl">hours</div></div>
+      <div class="cd-unit m"><div class="cd-num">${Math.floor((diff%36e5)/6e4)}</div><div class="cd-lbl">mins</div></div>
+      <div class="cd-unit s"><div class="cd-num">${Math.floor((diff%6e4)/1e3)}</div><div class="cd-lbl">secs</div></div>`;
+  }
+  // German time bar
+  const gerTarget=new Date('2027-01-31');
+  const gerStart=new Date('2026-05-23');
+  const elapsed=now-gerStart;
+  const total=gerTarget-gerStart;
+  const pct=Math.min(100,Math.max(0,Math.round(elapsed/total*100)));
+  const el=document.getElementById('ger-time-bar');
+  if(el) el.style.width=pct+'%';
+  const dl=Math.ceil((gerTarget-now)/864e5);
+  const dlEl=document.getElementById('ger-days-left');
+  if(dlEl) dlEl.textContent=dl+' days left';
+}
+
+// ─── EXAM TIMETABLE ───────────────────────────────────────────────────────
+let currentExamTab='all';
+function examTab(filter,el){
+  currentExamTab=filter;
+  document.querySelectorAll('#page-exams .tab-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  renderExams(filter);
+}
+function renderExams(filter){
+  const list=document.getElementById('exam-list');
+  const now=new Date();
+  const filtered=filter==='all'?EXAMS:EXAMS.filter(e=>e.subj===filter);
+  const sorted=filtered.sort((a,b)=>a.ts-b.ts);
+  list.innerHTML=sorted.map(e=>{
+    const past=e.ts<now;
+    const dLeft=Math.ceil((e.ts-now)/864e5);
+    return`<div class="exam-tile" style="${past?'opacity:.5':''}">
+      <div class="exam-tile-dot" style="background:var(--${e.subj})"></div>
+      <div class="exam-tile-info">
+        <div class="exam-tile-name">${e.name}</div>
+        <div class="exam-tile-meta">${e.code} · ${e.dur}</div>
+      </div>
+      <div class="exam-tile-date">
+        <div>${e.date}</div>
+        <div class="exam-tile-badge badge-${e.session.toLowerCase()}">${e.session}</div>
+        ${!past?`<div style="font-size:10px;color:var(--txt3);margin-top:2px">${dLeft}d away</div>`:'<div style="font-size:10px;color:var(--green);margin-top:2px">Done</div>'}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─── TIMER ────────────────────────────────────────────────────────────────
+let tSecs=50*60, tRunning=false, tBreak=false, tInterval=null, tStart=null;
+const ARC_LEN=552.9;
+const TOTAL_SECS=50*60;
+
+function fmtTime(s){return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')}
+function updateArc(s,total){
+  const arc=document.getElementById('timer-arc');
+  if(!arc)return;
+  const pct=s/total;
+  arc.style.strokeDashoffset=ARC_LEN*(1-pct);
+  if(s<60){arc.style.stroke='var(--acc2)'}
+  else{arc.style.stroke='url(#tg)'}
+}
+
+function timerToggle(btn){
+  if(tRunning){
+    clearInterval(tInterval);tRunning=false;
+    btn.textContent='▶ Resume';btn.className='btn btn-ghost';
+    if(tStart&&!tBreak) saveSession();
+  } else {
+    if(!tStart) tStart=new Date();
+    tRunning=true;
+    btn.textContent='⏸ Pause';btn.className='btn btn-acc';
+    tInterval=setInterval(()=>{
+      tSecs--;
+      document.getElementById('timer-disp').textContent=fmtTime(tSecs);
+      updateArc(tSecs,tBreak?600:TOTAL_SECS);
+      if(tSecs<=0){
+        clearInterval(tInterval);tRunning=false;
+        if(!tBreak){saveSession();logPomo();toast('🎉 Session done! Take a break.','🎉');setBreak();}
+        else{toast('Break over — back to it!','💪');timerReset();}
+      }
+    },1000);
+  }
+}
+
+function timerReset(){
+  clearInterval(tInterval);tRunning=false;tBreak=false;tSecs=50*60;tStart=null;
+  document.getElementById('timer-disp').textContent='50:00';
+  document.getElementById('timer-mode').textContent='FOCUS';
+  document.getElementById('t-start-btn').textContent='▶ Start';
+  document.getElementById('t-start-btn').className='btn btn-acc';
+  updateArc(TOTAL_SECS,TOTAL_SECS);
+}
+
+function setBreak(){
+  clearInterval(tInterval);tRunning=false;tBreak=true;tSecs=600;tStart=null;
+  document.getElementById('timer-disp').textContent='10:00';
+  document.getElementById('timer-mode').textContent='BREAK';
+  document.getElementById('t-start-btn').textContent='▶ Start Break';
+  document.getElementById('t-start-btn').className='btn btn-ghost';
+  updateArc(600,600);
+}
+
+function saveSession(){
+  if(!tStart) return;
+  const mins=Math.round((new Date()-tStart)/60000);
+  if(mins<1){tStart=null;return;}
+  const hrs=Math.floor(mins/60);
+  sessions.push({subject:document.getElementById('t-subj').value,topic:document.getElementById('t-topic').value,duration:hrs>0?`${hrs}h ${mins%60}m`:`${mins}m`,minutes:mins,date:new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short'}),ts:Date.now()});
+  sv('sb_sessions',sessions);tStart=null;
+  renderTodaySess();refreshBadges();
+}
+
+function logPomo(){
+  const today=new Date().toDateString();
+  if(pomos.date!==today) pomos={date:today,count:0};
+  pomos.count++;sv('sb_pomos',pomos);
+  renderPomos();
+}
+
+function renderPomos(){
+  const today=new Date().toDateString();
+  const count=pomos.date===today?pomos.count:0;
+  const el=document.getElementById('pomo-dots');
+  if(!el)return;
+  el.innerHTML=Array(Math.min(count,8)).fill(0).map((_,i)=>`<div class="pomo-dot" style="opacity:${1-i*0.1}"></div>`).join('')+
+    Array(Math.max(0,8-Math.min(count,8))).fill(0).map(()=>`<div class="pomo-dot empty"></div>`).join('');
+}
+
+function renderTodaySess(){
+  const today=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+  const todaySess=sessions.filter(s=>s.date===today);
+  const el=document.getElementById('today-sess-list');
+  el.innerHTML=todaySess.length?todaySess.slice().reverse().map(s=>sessHTML(s)).join(''):'<div style="color:var(--txt3);font-size:12px">Start a session to see it here</div>';
+  const tm=todaySess.reduce((a,s)=>a+(s.minutes||0),0);
+  document.getElementById('today-total').textContent=Math.floor(tm/60)+'h '+(tm%60)+'m';
+}
+
+// ─── PAST PAPERS ──────────────────────────────────────────────────────────
+let currentPapersTab='math';
+function papersTab(subj,el){
+  currentPapersTab=subj;
+  document.querySelectorAll('#page-papers .tab-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  renderPapers(subj);
+}
+function renderPapers(subj){
+  const data=PAST_PAPERS[subj];
+  const container=document.getElementById('papers-list');
+  container.innerHTML='';
+  data.forEach(yr=>{
+    const done=yr.papers.filter(p=>papersDone[subj+'_'+yr.year+'_'+p]).length;
+    const card=document.createElement('div');
+    card.className='card';
+    card.innerHTML=`<div style="font-size:12px;font-weight:700;color:var(--${subj});margin-bottom:10px;font-family:'JetBrains Mono',monospace">${yr.year} SERIES <span style="color:var(--txt3);font-weight:400">${done}/${yr.papers.length} done</span></div>
+      ${yr.papers.map(p=>{
+        const key=subj+'_'+yr.year+'_'+p;
+        const isDone=papersDone[key];
+        return`<div class="paper-row${isDone?' done-paper':''}" onclick="togglePaper('${key}','${subj}',this)">
+          <div class="paper-chk${isDone?' done':''}">${isDone?'✓':''}</div>
+          <div class="paper-name">${p}</div>
+        </div>`;
+      }).join('')}`;
+    container.appendChild(card);
+  });
+  updatePapersBadge();
+}
+
+function togglePaper(key,subj,row){
+  papersDone[key]=!papersDone[key];
+  sv('sb_papers',papersDone);
+  row.classList.toggle('done-paper',papersDone[key]);
+  const chk=row.querySelector('.paper-chk');
+  chk.className='paper-chk'+(papersDone[key]?' done':'');
+  chk.textContent=papersDone[key]?'✓':'';
+  const card=row.closest('.card');
+  if(card){
+    const s=currentPapersTab;
+    const yr=card.querySelector('[style*="SERIES"]').textContent.trim().split(' ')[0];
+    const yData=PAST_PAPERS[s].find(y=>y.year===yr);
+    if(yData){
+      const done=yData.papers.filter(p=>papersDone[s+'_'+yr+'_'+p]).length;
+      card.querySelector('span[style*="txt3"]').textContent=done+'/'+yData.papers.length+' done';
+    }
+  }
+  updatePapersBadge();
+  toast(papersDone[key]?'Paper marked done!':'Unmarked','📝');
+}
+
+function updatePapersBadge(){
+  const pp=getPapersProgress();
+  const el=document.getElementById('papers-overall-badge');
+  if(el) el.textContent=pp.pct+'%';
+  document.getElementById('nb-papers').textContent=pp.pct+'%';
+}
+
+// ─── ERRORS ───────────────────────────────────────────────────────────────
+function addError(btn){
+  const subj=document.getElementById('err-subj').value;
+  const paper=document.getElementById('err-paper').value.trim();
+  const q=document.getElementById('err-q').value.trim();
+  const detail=document.getElementById('err-detail').value.trim();
+  const tags=document.getElementById('err-tags').value.trim().split(',').map(t=>t.trim()).filter(Boolean);
+  if(!q){toast('Enter a question/topic first','⚠');return;}
+  errors.unshift({id:Date.now(),subj,paper,question:q,detail,tags,date:new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})});
+  sv('sb_errors',errors);
+  ['err-paper','err-q','err-detail','err-tags'].forEach(id=>document.getElementById(id).value='');
+  renderErrors();
+  refreshBadges();
+  toast('Error logged!','🔍');
+}
+
+function deleteError(id){
+  errors=errors.filter(e=>e.id!==id);
+  sv('sb_errors',errors);
+  renderErrors();
+  refreshBadges();
+  toast('Deleted','🗑');
+}
+
+function clearErrors(){
+  if(!confirm('Clear all error logs?'))return;
+  errors=[];sv('sb_errors',errors);renderErrors();refreshBadges();toast('Cleared','✓');
+}
+
+function renderErrors(){
+  const filter=document.getElementById('err-filter').value;
+  const filtered=filter==='all'?errors:errors.filter(e=>e.subj===filter);
+  document.getElementById('err-count-lbl').textContent=filtered.length+' error'+(filtered.length!==1?'s':'')+' logged';
+  const el=document.getElementById('err-list');
+  if(!filtered.length){el.innerHTML='<div style="color:var(--txt3);font-size:13px;padding:20px 10px;text-align:center">No errors logged yet.<br><span style="font-size:11px">Complete past papers and log your mistakes here.</span></div>';return;}
+  const c={math:'var(--math)',eco:'var(--eco)',cs:'var(--cs)'};
+  el.innerHTML=filtered.map(e=>`
+    <div class="err-item">
+      <div class="err-item-top">
+        <div class="err-subj-dot" style="background:${c[e.subj]||'var(--acc)'}"></div>
+        <div class="err-question">${e.question}</div>
+        <button class="err-del" onclick="deleteError(${e.id})">✕</button>
+      </div>
+      ${e.detail?`<div class="err-detail">${e.detail}</div>`:''}
+      <div class="err-tags">
+        ${e.paper?`<span class="err-tag ${e.subj}">${e.paper}</span>`:''}
+        ${e.date?`<span class="err-tag">${e.date}</span>`:''}
+        ${e.tags.map(t=>`<span class="err-tag">${t}</span>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+// ─── FULL LOG ─────────────────────────────────────────────────────────────
+function renderFullLog(){
+  const el=document.getElementById('full-log');
+  el.innerHTML=sessions.length?sessions.slice().reverse().map(s=>sessHTML(s)).join(''):'<div style="color:var(--txt3);font-size:12px">No sessions yet</div>';
+}
+
+function clearSessions(){
+  if(!confirm('Clear all session history?'))return;
+  sessions=[];sv('sb_sessions',sessions);renderFullLog();renderTodaySess();refreshBadges();toast('Log cleared','✓');
+}
+
+// ─── CLOCK ────────────────────────────────────────────────────────────────
+function updateClock(){
+  const now=new Date();
+  document.getElementById('clockChip').innerHTML=
+    `${now.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}<br>${now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}`;
+}
+
+// ─── TOAST ────────────────────────────────────────────────────────────────
+let toastTimer;
+function toast(msg,icon='✓'){
+  clearTimeout(toastTimer);
+  document.getElementById('t-msg').textContent=msg;
+  document.getElementById('t-icon').textContent=icon;
+  const el=document.getElementById('toast');
+  el.classList.add('show');
+  toastTimer=setTimeout(()=>el.classList.remove('show'),2400);
+}
+
+
+// ─── DEUTSCH INTEGRATION ─────────────────────────────────────────────────
+function openDeutsch(el){
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  if(el) el.classList.add('active');
+  window.open('../deutsch/index.html','_blank');
+}
+function getDeutschProgress(){
+  try{
+    const chk=JSON.parse(localStorage.getItem('dt_checked')||'{}');
+    // Count all keys that are checked
+    let done=Object.values(chk).filter(v=>v).length;
+    let total=106; // total topics A1+A2+B1
+    return{done,total,pct:Math.round(done/total*100)};
+  }catch{return{done:0,total:106,pct:0};}
+}
+// Override getProgress for ger
+const _origGP = getProgress;
+getProgress = function(subj){
+  if(subj==='ger') return getDeutschProgress();
+  return _origGP(subj);
+};
+
+
+// ─── MOBILE SIDEBAR ──────────────────────────────────────────────────────
+function toggleSidebar(){
+  document.querySelector('.sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('show');
+}
+function closeSidebar(){
+  document.querySelector('.sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+}
+window.addEventListener('resize',()=>{
+  if(window.innerWidth>768) closeSidebar();
+});
+// Close sidebar after nav on mobile
+const _origGoTo=goTo;
+goTo=function(id,el){_origGoTo(id,el);if(window.innerWidth<=768)closeSidebar();};
+
+// ─── INIT ─────────────────────────────────────────────────────────────────
+refreshDash();
+refreshBadges();
+renderTodaySess();
+renderPomos();
+updateCountdown();
+updateClock();
+setInterval(updateCountdown,1000);
+setInterval(updateClock,15000);
+</script>
+
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  });
+}
+// PWA install prompt
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('install-btn').style.display = 'flex';
+});
+window.addEventListener('appinstalled', () => {
+  document.getElementById('install-btn').style.display = 'none';
+});
+function installApp(){
+  if(deferredPrompt){ deferredPrompt.prompt(); deferredPrompt.userChoice.then(()=>{ deferredPrompt=null; }); }
+}
+</script>
+</body>
+</html>
