@@ -46,5 +46,10 @@ p{font-size:13px;color:#9b99cc;margin-bottom:28px}
     On PC (Chrome): click ⊕ in the address bar
   </div>
 </div>
+  <script>
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./sw.js');
+}
+</script>
 </body>
 </html>
