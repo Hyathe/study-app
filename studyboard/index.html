@@ -282,6 +282,12 @@ textarea{resize:vertical;min-height:70px;line-height:1.5}
   #menu-btn{display:none;}
 }
 
+
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:498;}
+.overlay.show{display:block;}
+.sidebar{transition:transform .3s ease;}
+.sidebar.closed{transform:translateX(-100%);position:fixed;top:0;left:0;height:100vh;z-index:499;}
+.main{transition:margin-left .3s ease;}
 </style>
 </head>
 <body>
@@ -293,10 +299,13 @@ textarea{resize:vertical;min-height:70px;line-height:1.5}
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
 <button id="menu-btn" onclick="toggleSidebar()">☰</button>
 <div class="sidebar">
-  <div class="logo">
+  <div class="logo" style="display:flex;align-items:flex-start;justify-content:space-between">
+    <div>
     <div class="logo-icon">📚</div>
     <div class="logo-name">StudyBoard</div>
     <div class="logo-ver">A LEVEL · NOV 2026</div>
+    </div>
+    <button onclick="toggleSidebar()" style="background:none;border:none;color:var(--txt2);font-size:20px;cursor:pointer;padding:4px;line-height:1;flex-shrink:0">✕</button>
 <button id="install-btn" onclick="installApp()" style="display:none;align-items:center;gap:6px;padding:6px 14px;background:var(--acc);color:white;border:none;border-radius:var(--r2);font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;cursor:pointer;margin-top:6px">⬇ Install App</button>
   </div>
   <div class="nav">
@@ -322,6 +331,7 @@ textarea{resize:vertical;min-height:70px;line-height:1.5}
 </div>
 
 <!-- MAIN -->
+<button onclick="toggleSidebar()" id="menu-btn" style="position:fixed;top:14px;left:14px;z-index:9999;width:40px;height:40px;background:var(--s1);border:2px solid var(--b1);border-radius:8px;color:var(--txt);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;">☰</button>
 <div class="main">
 
 <!-- ═══ DASHBOARD ═══ -->
@@ -1140,20 +1150,26 @@ getProgress = function(subj){
 
 // ─── MOBILE SIDEBAR ──────────────────────────────────────────────────────
 function toggleSidebar(){
-  document.querySelector('.sidebar').classList.toggle('open');
-  document.getElementById('overlay').classList.toggle('show');
+  const sb = document.querySelector('.sidebar');
+  const ov = document.getElementById('overlay');
+  const mb = document.getElementById('menu-btn');
+  sb.classList.toggle('closed');
+  ov.classList.toggle('show');
+  mb.textContent = sb.classList.contains('closed') ? '☰' : '✕';
 }
 function closeSidebar(){
-  document.querySelector('.sidebar').classList.remove('open');
-  document.getElementById('overlay').classList.remove('show');
+  const sb = document.querySelector('.sidebar');
+  const ov = document.getElementById('overlay');
+  const mb = document.getElementById('menu-btn');
+  sb.classList.add('closed');
+  ov.classList.remove('show');
+  if(mb) mb.textContent = '☰';
 }
-window.addEventListener('resize',()=>{
-  if(window.innerWidth>768) closeSidebar();
-});
 // Close sidebar after nav on mobile
 const _origGoTo=goTo;
 goTo=function(id,el){_origGoTo(id,el);if(window.innerWidth<=768)closeSidebar();};
 
+const __gt=goTo;goTo=function(id,el){__gt(id,el);closeSidebar();};
 // ─── INIT ─────────────────────────────────────────────────────────────────
 refreshDash();
 refreshBadges();
