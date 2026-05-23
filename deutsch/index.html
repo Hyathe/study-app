@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<link rel="manifest" href="manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Deutsch Tracker">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#ffd166">
+<title>Deutsch Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#07070e;--s1:#0f0f1a;--s2:#161625;--s3:#1e1e30;--b1:#252540;--b2:#32325a;
+  --acc:#ffd166;--acc2:#ff9f43;--txt:#f0efff;--txt2:#9b99cc;--txt3:#4a4870;
+  --a1:#6c63ff;--a2:#43e8d8;--b1c:#4dffb4;--b2c:#ff6584;
+  --r:10px;--r2:6px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-font-smoothing:antialiased}
+html,body{height:100%;background:var(--bg);color:var(--txt);font-family:'Space Grotesk',sans-serif;overflow-x:hidden}
+
+/* LAYOUT */
+.app{display:flex;flex-direction:column;min-height:100vh;max-width:900px;margin:0 auto;padding:0 0 80px}
+
+/* TOP BAR */
+.topbar{padding:16px 20px 12px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg);z-index:100}
+.topbar-logo{font-size:18px;font-weight:700;background:linear-gradient(90deg,var(--acc),var(--acc2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.topbar-sub{font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--txt3)}
+.topbar-right{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--txt2);text-align:right}
+
+/* BOTTOM NAV */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--s1);border-top:1px solid var(--b1);display:flex;z-index:200;padding:0 0 env(safe-area-inset-bottom)}
+.bn-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 4px 8px;cursor:pointer;transition:all .18s;color:var(--txt3);font-size:10px;font-weight:600;gap:3px;border:none;background:transparent;font-family:'Space Grotesk',sans-serif}
+.bn-item.active{color:var(--acc)}
+.bn-icon{font-size:20px;line-height:1}
+
+/* PAGES */
+.page{display:none;padding:16px 20px;animation:fadeUp .2s ease}
+.page.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* CARDS */
+.card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:16px;margin-bottom:12px}
+.card-title{font-size:13px;font-weight:600;color:var(--txt2);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+
+/* LEVEL PILLS */
+.level-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.lvl-pill{padding:6px 16px;border-radius:99px;border:1.5px solid var(--b1);font-size:12px;font-weight:600;cursor:pointer;transition:all .18s;background:transparent;font-family:'Space Grotesk',sans-serif;color:var(--txt2)}
+.lvl-pill.active-a1{border-color:var(--a1);color:var(--a1);background:rgba(108,99,255,.12)}
+.lvl-pill.active-a2{border-color:var(--a2);color:var(--a2);background:rgba(67,232,216,.12)}
+.lvl-pill.active-b1{border-color:var(--b1c);color:var(--b1c);background:rgba(77,255,180,.12)}
+.lvl-pill.active-b2{border-color:var(--b2c);color:var(--b2c);background:rgba(255,101,132,.12)}
+
+/* PROGRESS RING */
+.ring-wrap{display:flex;align-items:center;gap:16px;margin-bottom:14px}
+.ring-svg{flex-shrink:0}
+.ring-info{flex:1}
+.ring-pct{font-size:28px;font-weight:700;font-family:'JetBrains Mono',monospace}
+.ring-lbl{font-size:11px;color:var(--txt2);margin-top:2px}
+
+/* PROGRESS BAR */
+.prog-track{height:5px;background:var(--s3);border-radius:99px;overflow:hidden;margin-top:5px}
+.prog-fill{height:100%;border-radius:99px;transition:width .6s ease}
+
+/* TOPIC ITEMS */
+.topic-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--r2);cursor:pointer;transition:background .15s}
+.topic-item:hover,.topic-item:active{background:var(--s2)}
+.topic-item.done .topic-name{color:var(--txt3);text-decoration:line-through}
+.chkbox{width:18px;height:18px;border-radius:4px;border:1.5px solid var(--b2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;transition:all .18s}
+.chkbox.ticked{border-color:transparent}
+.topic-name{font-size:13px;flex:1}
+.topic-grp-hdr{font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--txt3);letter-spacing:1px;text-transform:uppercase;padding:12px 10px 4px}
+
+/* OVERALL SUMMARY CARDS */
+.summary-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.sum-card{background:var(--s2);border:1px solid var(--b1);border-radius:var(--r2);padding:12px;text-align:center;position:relative;overflow:hidden}
+.sum-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px}
+.sum-card.a1::after{background:var(--a1)}
+.sum-card.a2::after{background:var(--a2)}
+.sum-card.b1::after{background:var(--b1c)}
+.sum-card.b2::after{background:var(--b2c)}
+.sum-val{font-size:22px;font-weight:700;font-family:'JetBrains Mono',monospace}
+.sum-lbl{font-size:10px;color:var(--txt3);margin-top:2px}
+
+/* ERROR LOG */
+.err-card{background:var(--s2);border:1px solid var(--b1);border-radius:var(--r2);padding:12px;margin-bottom:8px}
+.err-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px}
+.err-q{font-size:13px;font-weight:600;flex:1}
+.err-del{background:none;border:none;color:var(--txt3);font-size:15px;cursor:pointer;padding:0 4px;line-height:1}
+.err-body{font-size:12px;color:var(--txt2);line-height:1.6;margin-bottom:6px}
+.err-tags{display:flex;gap:5px;flex-wrap:wrap}
+.etag{font-size:9px;font-family:'JetBrains Mono',monospace;padding:2px 7px;border-radius:99px;border:1px solid var(--b2);color:var(--txt3)}
+
+/* FORM */
+.form-grp{margin-bottom:10px}
+.form-lbl{font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--txt2);display:block;margin-bottom:5px}
+input,select,textarea{background:var(--s2);border:1px solid var(--b1);color:var(--txt);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:9px 12px;border-radius:var(--r2);outline:none;width:100%;transition:border-color .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--acc)}
+select option{background:var(--s1)}
+textarea{resize:vertical;min-height:60px;line-height:1.5}
+
+/* BTN */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 18px;border-radius:var(--r2);border:none;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .18s;width:100%}
+.btn:active{transform:scale(.97)}
+.btn-acc{background:var(--acc);color:#07070e}
+.btn-ghost{background:var(--s2);color:var(--txt2);border:1px solid var(--b1)}
+.btn-danger{background:rgba(255,82,119,.12);color:#ff5277;border:1px solid rgba(255,82,119,.25)}
+
+/* STREAK CHIP */
+.streak-chip{display:inline-flex;align-items:center;gap:5px;background:rgba(255,209,102,.1);border:1px solid rgba(255,209,102,.3);border-radius:99px;padding:4px 12px;font-size:12px;font-weight:600;color:var(--acc)}
+
+/* BADGE */
+.level-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:99px;font-size:10px;font-weight:600;font-family:'JetBrains Mono',monospace}
+.lb-a1{background:rgba(108,99,255,.2);color:var(--a1)}
+.lb-a2{background:rgba(67,232,216,.2);color:var(--a2)}
+.lb-b1{background:rgba(77,255,180,.2);color:var(--b1c)}
+.lb-b2{background:rgba(255,101,132,.2);color:var(--b2c)}
+
+/* TOAST */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:10px 18px;font-size:13px;font-weight:600;opacity:0;transition:all .25s;pointer-events:none;white-space:nowrap;z-index:999}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div>
+    <div class="topbar-logo">🇩🇪 Deutsch Tracker</div>
+    <div class="topbar-sub">A1 → B1 PROGRESS</div>
+  </div>
+  <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px"><div class="topbar-right" id="top-clock"></div><button id="install-btn-de" onclick="installApp()" style="display:none;align-items:center;gap:5px;padding:4px 12px;background:var(--acc);color:#07070e;border:none;border-radius:99px;font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:600;cursor:pointer">⬇ Install</button></div>
+</div>
+
+<!-- ═══ HOME ═══ -->
+<div class="page active" id="pg-home">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+    <div>
+      <div style="font-size:20px;font-weight:700">Your Progress</div>
+      <div style="font-size:12px;color:var(--txt2);margin-top:2px">Keep going — B1 by Jan 2027 🎯</div>
+    </div>
+    <div class="streak-chip" id="streak-chip">🔥 0 day streak</div>
+  </div>
+
+  <!-- OVERALL RING -->
+  <div class="card">
+    <div class="card-title">Overall A1→B1</div>
+    <div class="ring-wrap">
+      <svg class="ring-svg" width="90" height="90" viewBox="0 0 90 90">
+        <circle cx="45" cy="45" r="36" fill="none" stroke="var(--s3)" stroke-width="7"/>
+        <circle id="overall-arc" cx="45" cy="45" r="36" fill="none" stroke="var(--acc)" stroke-width="7" stroke-linecap="round" stroke-dasharray="226.2" stroke-dashoffset="226.2" style="transform:rotate(-90deg);transform-origin:center;transition:stroke-dashoffset .7s ease"/>
+      </svg>
+      <div class="ring-info">
+        <div class="ring-pct" style="color:var(--acc)" id="overall-pct">0%</div>
+        <div class="ring-lbl">of all topics complete</div>
+        <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap" id="level-chips"></div>
+      </div>
+    </div>
+    <!-- per-level bars -->
+    <div id="level-bars"></div>
+  </div>
+
+  <!-- SUMMARY GRID -->
+  <div class="summary-grid" id="summary-grid"></div>
+
+  <!-- NEXT UP -->
+  <div class="card">
+    <div class="card-title">Continue Learning</div>
+    <div id="next-up"></div>
+  </div>
+</div>
+
+<!-- ═══ LEARN (Topics) ═══ -->
+<div class="page" id="pg-learn">
+  <div class="level-row" id="level-pills"></div>
+  <div id="topics-container"></div>
+</div>
+
+<!-- ═══ ERRORS ═══ -->
+<div class="page" id="pg-errors">
+  <!-- ADD FORM -->
+  <div class="card">
+    <div class="card-title">Log an Error</div>
+    <div class="form-grp">
+      <label class="form-lbl">LEVEL</label>
+      <select id="e-level">
+        <option value="A1">A1</option>
+        <option value="A2">A2</option>
+        <option value="B1" selected>B1</option>
+      </select>
+    </div>
+    <div class="form-grp">
+      <label class="form-lbl">TOPIC / QUESTION</label>
+      <input type="text" id="e-q" placeholder="e.g. Dative prepositions — mit/nach">
+    </div>
+    <div class="form-grp">
+      <label class="form-lbl">WHAT WENT WRONG + CORRECT FORM</label>
+      <textarea id="e-detail" placeholder="e.g. Used accusative instead of dative with 'mit'. Correct: Ich fahre mit dem Bus."></textarea>
+    </div>
+    <div class="form-grp">
+      <label class="form-lbl">TAGS (comma-separated)</label>
+      <input type="text" id="e-tags" placeholder="e.g. dative, prepositions, cases">
+    </div>
+    <button class="btn btn-acc" style="margin-top:4px" onclick="addErr()">+ Log Error</button>
+  </div>
+
+  <!-- FILTER + LIST -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:8px">
+    <select id="e-filter" onchange="renderErrs()" style="flex:1;padding:7px 10px;font-size:12px">
+      <option value="all">All levels</option>
+      <option value="A1">A1 only</option>
+      <option value="A2">A2 only</option>
+      <option value="B1">B1 only</option>
+    </select>
+    <button class="btn btn-danger" style="width:auto;padding:7px 14px;font-size:12px" onclick="clearErrs()">Clear all</button>
+  </div>
+  <div id="err-count" style="font-size:11px;color:var(--txt3);font-family:'JetBrains Mono',monospace;margin-bottom:8px"></div>
+  <div id="err-list"></div>
+</div>
+
+<!-- ═══ REVIEW ═══ -->
+<div class="page" id="pg-review">
+  <div class="card">
+    <div class="card-title">Quick Review 📋</div>
+    <div style="font-size:12px;color:var(--txt2);margin-bottom:14px">Tap to reveal — test yourself before marking as reviewed</div>
+    <div id="review-list"></div>
+  </div>
+</div>
+
+</div><!-- /app -->
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+  <button class="bn-item active" onclick="goTo('home',this)"><span class="bn-icon">🏠</span>Home</button>
+  <button class="bn-item" onclick="goTo('learn',this)"><span class="bn-icon">📖</span>Learn</button>
+  <button class="bn-item" onclick="goTo('errors',this)"><span class="bn-icon">🔍</span>Errors</button>
+  <button class="bn-item" onclick="goTo('review',this)"><span class="bn-icon">🔄</span>Review</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── CURRICULUM DATA ─────────────────────────────────────────────────────
+const LEVELS = {
+  A1:{label:'A1',color:'var(--a1)',cls:'a1',lbcls:'lb-a1',pillcls:'active-a1',
+    groups:[
+      {name:'Pronunciation & Alphabet',topics:['German alphabet & umlauts (ä ö ü)','Pronunciation rules','ch, sch, sp, st sounds','Word stress basics']},
+      {name:'Basic Grammar',topics:['Articles: der/die/das (nominative)','Indefinite articles: ein/eine','Personal pronouns (ich/du/er…)','Present tense: regular verbs','Present tense: sein & haben','Negation: nicht & kein','Question words: wer/was/wo/wann/wie']},
+      {name:'Sentence Structure',topics:['Basic word order (S-V-O)','Yes/no questions (verb-first)','W-questions structure','Simple negation sentences']},
+      {name:'Essential Vocabulary',topics:['Numbers 1–100','Days of the week','Months & seasons','Colours & basic adjectives','Family members','Greetings & farewells','Common classroom phrases']},
+      {name:'Topics — A1',topics:['Introduce yourself (name, age, country)','Describe your family','Talk about daily routine','Food & drink ordering','Directions (left/right/straight on)','Shopping (prices, asking for items)','Time expressions (um, am, im)']},
+    ]
+  },
+  A2:{label:'A2',color:'var(--a2)',cls:'a2',lbcls:'lb-a2',pillcls:'active-a2',
+    groups:[
+      {name:'Grammar — Cases',topics:['Nominative case (review)','Accusative case (articles)','Dative case (articles)','Two-way prepositions (accusative/dative)','Accusative prepositions (durch/für/gegen/ohne/um)','Dative prepositions (aus/bei/mit/nach/seit/von/zu)']},
+      {name:'Grammar — Verbs',topics:['Modal verbs: können/müssen/wollen/dürfen/sollen/mögen','Separable verbs (an-, auf-, aus-, ein-…)','Reflexive verbs (sich freuen etc.)','Perfect tense with haben','Perfect tense with sein','Simple past: sein & haben & modals','Imperative (commands)']},
+      {name:'Grammar — Advanced',topics:['Adjective endings (nominative/accusative/dative)','Comparative & superlative','Coordinating conjunctions (und/aber/oder/denn)','Subordinating conjunctions (weil/dass/wenn/ob)','Subordinate clause word order']},
+      {name:'Vocabulary — A2',topics:['Body & health vocabulary','Work & professions','Hobbies & free time','Transport & travel','Weather expressions','In the city (bank, post, hospital)','Expressing opinions (ich finde/ich denke)']},
+      {name:'Topics — A2',topics:['Describe a past event','Talk about future plans','Express preferences','Make & respond to suggestions','Describe a place','Write a simple informal email','Understand simple announcements']},
+    ]
+  },
+  B1:{label:'B1',color:'var(--b1c)',cls:'b1',lbcls:'lb-b1',pillcls:'active-b1',
+    groups:[
+      {name:'Grammar — B1 Core',topics:['Konjunktiv II: würden + infinitive','Konjunktiv II: wäre/hätte/könnte','Passive voice (Präsens)','Passive voice (Präteritum)','Relative clauses (nominative/accusative)','Relative clauses (dative/genitive)','Genitive case','Infinitive clauses: um…zu / ohne…zu / anstatt…zu']},
+      {name:'Grammar — Advanced',topics:['Indirect speech (Konjunktiv I)','Verb + preposition combinations','Adjective as noun (der Deutsche etc.)','Extended participial phrases (intro)','N-declension nouns (der Herr/Mensch)']},
+      {name:'Vocabulary — B1',topics:['Environment & sustainability','Media & technology','Politics & society (basic)','Work & application letters','Health & medicine','Relationships & emotions','Abstract concepts & discussion vocab','1000-word B1 core list']},
+      {name:'Skills — Goethe B1',topics:['Reading: longer texts & articles','Listening: native-speed dialogues','Writing: semi-formal letter/email','Writing: opinion essay (150+ words)','Speaking: monologue on a topic','Speaking: discussion & reaction','Exam format & time management','Full mock test (Goethe B1 format)']},
+    ]
+  }
+};
+
+// ─── STORAGE ────────────────────────────────────────────────────────────
+const ld=(k,d)=>{try{return JSON.parse(localStorage.getItem('dt_'+k))||d}catch{return d}};
+const sv=(k,v)=>localStorage.setItem('dt_'+k,JSON.stringify(v));
+
+let checked = ld('checked',{});
+let errors   = ld('errors',[]);
+let streak   = ld('streak',{last:'',count:0});
+let currentLevel = 'A1';
+
+// ─── PROGRESS ────────────────────────────────────────────────────────────
+function getProgress(lvl){
+  const data = LEVELS[lvl];
+  let done=0,total=0;
+  data.groups.forEach(g=>g.topics.forEach(t=>{total++;if(checked[lvl+'_'+t])done++}));
+  return{done,total,pct:total?Math.round(done/total*100):0};
+}
+function getAllProgress(){
+  let td=0,ta=0;
+  Object.keys(LEVELS).forEach(l=>{const p=getProgress(l);td+=p.done;ta+=p.total});
+  return{done:td,total:ta,pct:ta?Math.round(td/ta*100):0};
+}
+
+// ─── NAV ─────────────────────────────────────────────────────────────────
+function goTo(id,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.bn-item').forEach(b=>b.classList.remove('active'));
+  document.getElementById('pg-'+id).classList.add('active');
+  el.classList.add('active');
+  if(id==='home') refreshHome();
+  if(id==='learn'){buildLevelPills();renderTopics(currentLevel);}
+  if(id==='errors') renderErrs();
+  if(id==='review') renderReview();
+}
+
+// ─── HOME ─────────────────────────────────────────────────────────────────
+function refreshHome(){
+  // Overall ring
+  const ap = getAllProgress();
+  const arc = document.getElementById('overall-arc');
+  arc.style.strokeDashoffset = 226.2*(1-ap.pct/100);
+  document.getElementById('overall-pct').textContent = ap.pct+'%';
+
+  // Level chips
+  const lc = document.getElementById('level-chips');
+  lc.innerHTML = Object.keys(LEVELS).map(l=>{
+    const p=getProgress(l);
+    return`<span class="level-badge ${LEVELS[l].lbcls}">${l} ${p.pct}%</span>`;
+  }).join('');
+
+  // Level bars
+  const lb = document.getElementById('level-bars');
+  lb.innerHTML = Object.keys(LEVELS).map(l=>{
+    const p=getProgress(l);
+    return`<div style="margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--txt2);margin-bottom:4px"><span>${LEVELS[l].label}</span><span>${p.done}/${p.total}</span></div>
+      <div class="prog-track"><div class="prog-fill" style="width:${p.pct}%;background:${LEVELS[l].color}"></div></div>
+    </div>`;
+  }).join('');
+
+  // Summary grid
+  document.getElementById('summary-grid').innerHTML = Object.keys(LEVELS).map(l=>{
+    const p=getProgress(l);
+    return`<div class="sum-card ${LEVELS[l].cls}"><div class="sum-val" style="color:${LEVELS[l].color}">${p.pct}%</div><div class="sum-lbl">${LEVELS[l].label} Complete</div><div style="font-size:10px;color:var(--txt3);margin-top:2px">${p.total-p.done} remaining</div></div>`;
+  }).join('');
+
+  // Next up — find first unchecked topic
+  let nextItem = null;
+  outer:for(const l of Object.keys(LEVELS)){
+    for(const g of LEVELS[l].groups){
+      for(const t of g.topics){
+        if(!checked[l+'_'+t]){nextItem={l,g:g.name,t};break outer;}
+      }
+    }
+  }
+  document.getElementById('next-up').innerHTML = nextItem
+    ? `<div style="display:flex;align-items:center;gap:10px;padding:6px 10px;background:var(--s2);border-radius:var(--r2)">
+        <span class="level-badge ${LEVELS[nextItem.l].lbcls}">${nextItem.l}</span>
+        <div><div style="font-size:13px;font-weight:600">${nextItem.t}</div><div style="font-size:10px;color:var(--txt3);margin-top:1px">${nextItem.g}</div></div>
+        <button onclick="goTo('learn',document.querySelectorAll('.bn-item')[1])" class="btn btn-ghost" style="width:auto;padding:5px 12px;font-size:11px;margin-left:auto">Go →</button>
+      </div>`
+    : `<div style="text-align:center;padding:20px;color:var(--txt3);font-size:13px">🎉 All topics complete!</div>`;
+
+  // Streak
+  updateStreak();
+}
+
+function updateStreak(){
+  const today=new Date().toDateString();
+  const el=document.getElementById('streak-chip');
+  if(el) el.textContent='🔥 '+streak.count+' day streak';
+}
+
+// ─── LEARN PAGE ───────────────────────────────────────────────────────────
+function buildLevelPills(){
+  const wrap = document.getElementById('level-pills');
+  wrap.innerHTML = Object.keys(LEVELS).map(l=>`
+    <button class="lvl-pill${l===currentLevel?' '+LEVELS[l].pillcls:''}" onclick="switchLevel('${l}',this)">${LEVELS[l].label}</button>
+  `).join('');
+}
+
+function switchLevel(l,btn){
+  currentLevel=l;
+  document.querySelectorAll('.lvl-pill').forEach(p=>{
+    p.className='lvl-pill';
+  });
+  btn.className='lvl-pill '+LEVELS[l].pillcls;
+  renderTopics(l);
+}
+
+function renderTopics(l){
+  const data=LEVELS[l];
+  const container=document.getElementById('topics-container');
+  container.innerHTML='';
+  const p=getProgress(l);
+  // header progress
+  const hdr=document.createElement('div');
+  hdr.className='card';
+  hdr.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+    <div style="font-size:14px;font-weight:700;color:${data.color}">${data.label} — ${p.pct}% done</div>
+    <div style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--txt3)">${p.done}/${p.total}</div>
+  </div>
+  <div class="prog-track"><div class="prog-fill" style="width:${p.pct}%;background:${data.color}"></div></div>`;
+  container.appendChild(hdr);
+
+  data.groups.forEach(g=>{
+    const done=g.topics.filter(t=>checked[l+'_'+t]).length;
+    const gpct=g.topics.length?Math.round(done/g.topics.length*100):0;
+    const card=document.createElement('div');
+    card.className='card';
+    card.style.paddingTop='12px';
+    const body=document.createElement('div');
+    body.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;cursor:pointer" onclick="toggleGrp(this)">
+      <div style="font-size:12px;font-weight:600">${g.name}</div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--txt3)">${done}/${g.topics.length}</span>
+        <span style="color:var(--txt3);font-size:12px">▾</span>
+      </div>
+    </div>
+    <div class="prog-track" style="margin-bottom:10px"><div class="prog-fill" style="width:${gpct}%;background:${data.color}"></div></div>
+    <div class="grp-body">
+      ${g.topics.map(t=>{
+        const key=l+'_'+t;const isDone=checked[key];
+        return`<div class="topic-item${isDone?' done':''}" onclick="toggleTopic('${key}','${l}',this)">
+          <div class="chkbox${isDone?' ticked':('')} " style="${isDone?'background:'+data.color+';border-color:transparent':''}">
+            ${isDone?'✓':''}
+          </div>
+          <div class="topic-name">${t}</div>
+        </div>`;
+      }).join('')}
+    </div>`;
+    card.appendChild(body);
+    container.appendChild(card);
+  });
+}
+
+function toggleGrp(el){
+  const body=el.parentElement.querySelector('.grp-body');
+  const arr=el.querySelector('span:last-child');
+  const hidden=body.style.display==='none';
+  body.style.display=hidden?'':'none';
+  arr.textContent=hidden?'▾':'▸';
+}
+
+function toggleTopic(key,l,row){
+  checked[key]=!checked[key];
+  sv('checked',checked);
+  row.classList.toggle('done',checked[key]);
+  const box=row.querySelector('.chkbox');
+  box.style.background=checked[key]?LEVELS[l].color:'';
+  box.style.borderColor=checked[key]?'transparent':'';
+  box.textContent=checked[key]?'✓':'';
+  // update streak
+  if(checked[key]){
+    const today=new Date().toDateString();
+    if(streak.last!==today){streak={last:today,count:streak.count+1};sv('streak',streak);}
+    updateStreak();
+  }
+  // update group progress bar
+  const card=row.closest('.card');
+  if(card){
+    const g=Object.values(LEVELS[l].groups).find(g=>g.topics.some(t=>l+'_'+t===key));
+    if(g){
+      const done=g.topics.filter(t=>checked[l+'_'+t]).length;
+      const pct=g.topics.length?Math.round(done/g.topics.length*100):0;
+      const fills=card.querySelectorAll('.prog-fill');
+      if(fills[0]) fills[0].style.width=pct+'%';
+      const cnt=card.querySelector('[style*="JetBrains"]');
+      if(cnt) cnt.textContent=done+'/'+g.topics.length;
+    }
+  }
+  toast(checked[key]?'✓ Topic done!':'Unmarked');
+}
+
+// ─── ERRORS ───────────────────────────────────────────────────────────────
+function addErr(){
+  const lvl=document.getElementById('e-level').value;
+  const q=document.getElementById('e-q').value.trim();
+  const detail=document.getElementById('e-detail').value.trim();
+  const tags=document.getElementById('e-tags').value.split(',').map(t=>t.trim()).filter(Boolean);
+  if(!q){toast('Enter a topic/question first');return;}
+  errors.unshift({id:Date.now(),lvl,q,detail,tags,date:new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short'})});
+  sv('errors',errors);
+  ['e-q','e-detail','e-tags'].forEach(i=>document.getElementById(i).value='');
+  renderErrs();toast('Error logged! 🔍');
+}
+function deleteErr(id){
+  errors=errors.filter(e=>e.id!==id);sv('errors',errors);renderErrs();toast('Deleted');
+}
+function clearErrs(){
+  if(!confirm('Clear all errors?'))return;
+  errors=[];sv('errors',errors);renderErrs();toast('Cleared');
+}
+function renderErrs(){
+  const f=document.getElementById('e-filter').value;
+  const list=f==='all'?errors:errors.filter(e=>e.lvl===f);
+  document.getElementById('err-count').textContent=list.length+' error'+(list.length!==1?'s':'')+' logged';
+  const lc={A1:'var(--a1)',A2:'var(--a2)',B1:'var(--b1c)'};
+  document.getElementById('err-list').innerHTML=list.length?list.map(e=>`
+    <div class="err-card">
+      <div class="err-top">
+        <span class="level-badge lb-${e.lvl.toLowerCase()}" style="flex-shrink:0">${e.lvl}</span>
+        <div class="err-q">${e.q}</div>
+        <button class="err-del" onclick="deleteErr(${e.id})">✕</button>
+      </div>
+      ${e.detail?`<div class="err-body">${e.detail}</div>`:''}
+      <div class="err-tags">
+        ${e.date?`<span class="etag">${e.date}</span>`:''}
+        ${e.tags.map(t=>`<span class="etag">${t}</span>`).join('')}
+      </div>
+    </div>`).join('')
+    :'<div style="color:var(--txt3);font-size:13px;padding:20px;text-align:center">No errors yet.<br><span style="font-size:11px">Log mistakes from your practice sessions.</span></div>';
+}
+
+// ─── REVIEW PAGE ───────────────────────────────────────────────────────────
+function renderReview(){
+  // Show all logged errors as flashcard-style review items
+  const el=document.getElementById('review-list');
+  if(!errors.length){el.innerHTML='<div style="color:var(--txt3);font-size:13px;text-align:center;padding:20px">No errors to review yet.<br><span style="font-size:11px">Log errors first, then review them here.</span></div>';return;}
+  el.innerHTML=errors.map((e,i)=>`
+    <div style="background:var(--s2);border:1px solid var(--b1);border-radius:var(--r2);padding:12px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <span class="level-badge lb-${e.lvl.toLowerCase()}">${e.lvl}</span>
+        <div style="font-size:13px;font-weight:600">${e.q}</div>
+      </div>
+      <div style="background:var(--s3);border-radius:6px;padding:10px;cursor:pointer;font-size:12px;color:var(--txt3)" onclick="this.style.color='var(--txt)';this.style.background='var(--s2)'">
+        👆 Tap to reveal correction
+        <div style="display:none">${e.detail||'No detail logged.'}</div>
+      </div>
+    </div>`).join('');
+  // make tap reveal work
+  el.querySelectorAll('[onclick*="reveal"]').forEach(d=>{
+    d.onclick=function(){
+      this.style.color='var(--txt)';
+      const hidden=this.querySelector('div');
+      if(hidden){hidden.style.display='block';this.firstChild.textContent='';}
+    }
+  });
+}
+
+// ─── TOAST ────────────────────────────────────────────────────────────────
+let toastT;
+function toast(msg){
+  clearTimeout(toastT);
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.classList.add('show');
+  toastT=setTimeout(()=>el.classList.remove('show'),2000);
+}
+
+// ─── CLOCK ────────────────────────────────────────────────────────────────
+function tick(){
+  const el=document.getElementById('top-clock');
+  if(el) el.textContent=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────
+refreshHome();
+tick();
+setInterval(tick,30000);
+</script>
+
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  });
+}
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('install-btn-de').style.display = 'inline-flex';
+});
+window.addEventListener('appinstalled', () => {
+  document.getElementById('install-btn-de').style.display = 'none';
+});
+function installApp(){
+  if(deferredPrompt){ deferredPrompt.prompt(); deferredPrompt.userChoice.then(()=>{ deferredPrompt=null; }); }
+}
+</script>
+</body>
+</html>
